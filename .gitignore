@@ -1,0 +1,4 @@
+.DS_Store
+*.log
+# Personal data exports never go into the repository
+despesas-backup-*.json

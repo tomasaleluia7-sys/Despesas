@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Despesas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;900&family=Archivo+Narrow:wght@500;700&family=JetBrains+Mono:wght@400;700&family=Geist:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Skeleton shown while the data loads; the first screen replaces it. -->
+  <main id="app" aria-busy="true">
+    <div class="skeleton sk-bar"></div>
+    <div class="skeleton sk-total"></div>
+    <div class="skeleton sk-row"></div>
+    <div class="skeleton sk-row"></div>
+    <div class="skeleton sk-cat"></div>
+    <div class="skeleton sk-cat"></div>
+  </main>
+
+  <!-- Watercolour: noise pushes the edges of each colour patch around so they look hand-painted,
+       plus a soft rim in the same pigment (never black, so nothing looks like a stain). -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <filter id="wc-wash" x="-8%" y="-25%" width="116%" height="150%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.03" numOctaves="2" seed="7" result="warp"/>
+      <feDisplacementMap in="SourceGraphic" in2="warp" scale="9" xChannelSelector="R" yChannelSelector="G" result="shape"/>
+      <feMorphology in="shape" operator="erode" radius="2" result="inner"/>
+      <feComposite in="shape" in2="inner" operator="out" result="ring"/>
+      <feGaussianBlur in="ring" stdDeviation="1.8" result="ringSoft"/>
+      <feColorMatrix in="ringSoft" type="matrix" values="0.82 0 0 0 0  0 0.82 0 0 0  0 0 0.82 0 0  0 0 0 0.55 0" result="rim"/>
+      <feMerge><feMergeNode in="shape"/><feMergeNode in="rim"/></feMerge>
+    </filter>
+  </svg>
+
+  <nav class="tabbar">
+    <button data-screen="home">Início</button>
+    <button data-screen="movements">Movimentos</button>
+    <button data-screen="add">Adicionar</button>
+  </nav>
+
+  <!-- Order matters: each layer only uses the ones loaded before it. -->
+  <script src="js/data.js"></script>
+  <script src="js/logic.js"></script>
+  <script src="js/screens.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
