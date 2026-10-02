@@ -197,9 +197,12 @@ const Screens = {
       if (!days.length || days.at(-1).date !== m.date) days.push({ date: m.date, items: [] });
       days.at(-1).items.push(m);
     }
+    const groupsByKey = new Map(); // so a folder can be redrawn on its own when tapped
     const dayBlocks = days.map((d) => {
       const net = d.items.reduce((t, m) => t + (m.type === "income" ? m.amount : -m.amount), 0);
-      const cards = Logic.groupSameDay(d.items).map((g) =>
+      const groups = Logic.groupSameDay(d.items);
+      groups.forEach((g) => groupsByKey.set(g.key, g));
+      const cards = groups.map((g) =>
         g.items.length === 1 ? movementCard(g.items[0], categories) : groupCard(g, categories)).join("");
       return `
         <div class="daysep mono"><span>${Logic.dayLabel(d.date, today)}</span><span class="tot num">${net >= 0 ? "+" : "−"}${Logic.formatCents(Math.abs(net))}</span></div>
@@ -225,14 +228,21 @@ const Screens = {
     root.querySelector("[data-go]")?.addEventListener("click", () => App.go("add"));
 
     // Tapping a folder opens/closes it. Remembered in App.state so it stays open after a delete.
-    root.querySelectorAll("[data-group]").forEach((head) => {
+    // Only THAT folder is redrawn (not the whole screen): the old card is swapped for a new one.
+    const wireGroup = (head) => {
       head.onclick = () => {
         const key = head.dataset.group;
         const open = App.state.openGroups;
         open.has(key) ? open.delete(key) : open.add(key);
-        App.go("movements");
+        const card = head.closest("li");
+        card.insertAdjacentHTML("afterend", groupCard(groupsByKey.get(key), categories));
+        const fresh = card.nextElementSibling;
+        card.remove();
+        wireGroup(fresh.querySelector("[data-group]"));
+        wireDeleteButtons(fresh, "movements");
       };
-    });
+    };
+    root.querySelectorAll("[data-group]").forEach(wireGroup);
 
     root.querySelectorAll("[data-filter]").forEach((btn) => {
       btn.onclick = () => {

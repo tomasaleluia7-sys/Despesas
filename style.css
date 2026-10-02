@@ -40,7 +40,6 @@ body {
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 -0.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9 0.014' numOctaves='2' seed='3' stitchTiles='stitch' result='h'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.014 0.9' numOctaves='2' seed='8' stitchTiles='stitch' result='v'/%3E%3CfeBlend in='h' in2='v' mode='screen'/%3E%3CfeColorMatrix values='0 0 0 0 0.92  0 0 0 0 0.9  0 0 0 0 0.85  0.32 0 0 0 -0.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
   background-size: auto, auto, 160px 160px, 260px 260px;
-  background-attachment: fixed;
 }
 
 button, input, select { font: inherit; color: inherit; }
@@ -110,6 +109,12 @@ main {
     var(--c);
 }
 .cat:nth-of-type(even) .wash { --wx: 48%; --px: 18%; }
+/* Once js/watercolor.js has painted a patch into a picture, the live filter is switched off and the
+   picture is shown instead. The picture has a 12 px margin (where the edges spread), hence margin: -12px. */
+.wash.baked, .wc.baked::before {
+  filter: none; box-shadow: none; border-radius: 0; margin: -12px;
+  background: var(--baked) center / 100% 100% no-repeat;
+}
 .cat .blocks { grid-column: 1 / 3; display: flex; gap: 2px; height: 8px; }
 .cat .blocks i { flex: 1; background: var(--bone); opacity: 0.18; }
 .cat .blocks i.f { opacity: 0.92; }
@@ -281,5 +286,6 @@ button:active:not(:disabled) { transform: scale(0.98); }
   #app.enter > :nth-child(3) { animation-delay: 80ms; }
   #app.enter > :nth-child(n+4) { animation-delay: 120ms; }
 }
-@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+/* Starts fully visible and only slides up, so there is never a moment with an empty (black) screen. */
+@keyframes rise { from { transform: translateY(8px); } to { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }

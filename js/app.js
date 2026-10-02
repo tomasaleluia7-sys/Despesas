@@ -36,6 +36,7 @@ const App = {
   },
 
   async start() {
+    Watercolor.start(); // paints the watercolour patches into reusable pictures (see watercolor.js)
     await Data.init();
     this.state.month = Logic.monthKey(Logic.todayISO());
     document.querySelectorAll(".tabbar [data-screen]").forEach((btn) => {
