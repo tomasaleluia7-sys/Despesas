@@ -40,6 +40,8 @@
     <button data-screen="add">Adicionar</button>
   </nav>
 
+  <!-- Supabase library (the online database). If it can't load, the app falls back to this browser's storage. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
   <!-- Order matters: each layer only uses the ones loaded before it. -->
   <script src="js/data.js"></script>
   <script src="js/logic.js"></script>

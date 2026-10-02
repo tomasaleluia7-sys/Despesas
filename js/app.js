@@ -37,7 +37,32 @@ const App = {
 
   async start() {
     Watercolor.start(); // paints the watercolour patches into reusable pictures (see watercolor.js)
-    await Data.init();
+    let ready;
+    try {
+      ready = await Data.init();
+    } catch (error) {
+      // Can't reach the data (e.g. no internet): say so instead of showing an empty app.
+      const root = document.getElementById("app");
+      root.removeAttribute("aria-busy");
+      root.innerHTML = `<div class="bar-top mono"><span>Despesas</span></div>
+        <div class="form"><p class="error">${escapeHtml(error.message)}</p></div>`;
+      document.querySelector(".tabbar").hidden = true;
+      return;
+    }
+    if (!ready) {
+      // Not logged in yet: login screen, no tab bar. After logging in, carry on as normal.
+      const tabbar = document.querySelector(".tabbar");
+      tabbar.hidden = true;
+      const root = document.getElementById("app");
+      root.removeAttribute("aria-busy");
+      Screens.login(root, () => { tabbar.hidden = false; this.open(); });
+      return;
+    }
+    this.open();
+  },
+
+  // Data is loaded: wire the tabs and show Início.
+  open() {
     this.state.month = Logic.monthKey(Logic.todayISO());
     document.querySelectorAll(".tabbar [data-screen]").forEach((btn) => {
       btn.onclick = () => this.go(btn.dataset.screen);

@@ -1,9 +1,17 @@
 // DATA LAYER — reading and saving.
 // Knows nothing about the screen or about totals.
 
-// The only place that knows where data physically lives.
-// Published as a Claude artifact → Claude's cloud database (one document per key).
-// Opened locally in VS Code → the browser's localStorage.
+// The only place that knows where data physically lives. Three possible places:
+// - Published as a Claude artifact → Claude's cloud database (one document per key).
+// - Anywhere else (GitHub Pages, opened from the PC) → Supabase, after logging in.
+// - A test server on this computer without the Supabase library → the browser's localStorage.
+// Every place offers the same three operations: load, save, remove a value by its key.
+
+// Supabase project. Both values are meant to be public: the key only lets a request in,
+// and the database's own rules (Row Level Security) only show a logged-in user their own rows.
+const SUPABASE_URL = "https://mgncijddkyolzlrlphrp.supabase.co";
+const SUPABASE_KEY = "sb_publishable__-_rTACXw6nscunR4xg91Q_YRNb1Y7j";
+
 const localBackend = {
   async load(key) {
     const raw = localStorage.getItem(key);
@@ -33,13 +41,69 @@ function cloudBackend(db) {
   };
 }
 
+// Supabase: one table "store" with a row per (user, key). The value column holds the same
+// JSON the other backends hold. Supabase returns { data, error } instead of throwing,
+// so each call turns an error into a thrown one (the screens already show thrown errors).
+function supabaseBackend(client, userId) {
+  const check = ({ data, error }) => {
+    if (error) throw Object.assign(new Error(error.message), { code: error.code });
+    return data;
+  };
+  return {
+    async load(key) {
+      const row = check(await client.from("store").select("value").eq("key", key).maybeSingle());
+      return row ? row.value : null;
+    },
+    async save(key, value) {
+      check(await client.from("store").upsert(
+        { user_id: userId, key, value, updated_at: new Date().toISOString() },
+        { onConflict: "user_id,key" },
+      ));
+    },
+    async remove(key) {
+      check(await client.from("store").delete().eq("key", key));
+    },
+  };
+}
+
 const storage = {
   _backend: null,
+  _client: null, // the Supabase connection, when Supabase is used
 
   // Decides once, at startup, which backend to use.
+  // Returns false when Supabase is used but nobody is logged in yet (the app shows the login).
   async init() {
-    const db = window.claude ? await window.claude.use("db") : null;
-    this._backend = db ? cloudBackend(db) : localBackend;
+    if (window.claude) {
+      this._backend = cloudBackend(await window.claude.use("db"));
+      return true;
+    }
+    if (!window.supabase) {
+      // Library didn't load. Only on a test server on this computer is it OK to use the
+      // browser's storage; anywhere else that would save to the wrong place, so stop instead.
+      if (!["localhost", "127.0.0.1"].includes(location.hostname)) {
+        throw new Error("Sem ligação à internet. Fecha a app e abre outra vez quando tiveres rede.");
+      }
+      this._backend = localBackend;
+      return true;
+    }
+    // The library remembers the login on this phone and renews it by itself,
+    // so after the first login this finds the session straight away.
+    this._client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data } = await this._client.auth.getSession();
+    if (!data.session) return false;
+    this._backend = supabaseBackend(this._client, data.session.user.id);
+    return true;
+  },
+
+  // Email + password login. Throws with a message for the screen if it fails.
+  async signIn(email, password) {
+    const { data, error } = await this._client.auth.signInWithPassword({ email, password });
+    if (error) {
+      throw new Error(error.message === "Invalid login credentials"
+        ? "Email ou palavra-passe errados."
+        : `Não foi possível entrar (${error.message}).`);
+    }
+    this._backend = supabaseBackend(this._client, data.user.id);
   },
   load(key) {
     return this._backend.load(key);
@@ -119,8 +183,19 @@ const Data = {
   // Months that already have a document, e.g. ["2026-09", "2026-10"].
   _months: [],
 
+  // Returns false when a login is needed first (then call signIn, which loads the data).
   async init() {
-    await storage.init();
+    if (!(await storage.init())) return false;
+    await this._load();
+    return true;
+  },
+
+  async signIn(email, password) {
+    await storage.signIn(email, password);
+    await this._load();
+  },
+
+  async _load() {
     await this._migrateLegacyMovements();
     this._months = (await storage.load(KEYS.months)) ?? [];
     // Load every month in parallel and join them into one flat list for Logic.

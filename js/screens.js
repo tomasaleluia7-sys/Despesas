@@ -98,6 +98,51 @@ function wireDeleteButtons(root, screen) {
 }
 
 const Screens = {
+  // ---- Entrar (only with Supabase, only until this phone has logged in once) ----
+  // onDone runs after a successful login, when the data is already loaded.
+  login(root, onDone) {
+    root.innerHTML = `
+      <div class="bar-top mono"><span>Despesas</span><span>Entrar</span></div>
+      <form class="form" novalidate>
+        <label class="mono" for="email">Email</label>
+        <input id="email" class="input small" name="email" type="email" autocomplete="username" inputmode="email">
+        <label class="mono" for="password">Palavra-passe</label>
+        <input id="password" class="input small" name="password" type="password" autocomplete="current-password">
+        <p class="error" hidden></p>
+        <button type="submit" class="cta">${wash("var(--save)")}Entrar →</button>
+      </form>
+    `;
+    const form = root.querySelector("form");
+    const errorBox = form.querySelector(".error");
+    const button = form.querySelector(".cta");
+
+    form.onsubmit = async (event) => {
+      event.preventDefault();
+      const email = form.elements.email.value.trim();
+      const password = form.elements.password.value;
+      if (!email || !password) {
+        errorBox.textContent = "Escreve o email e a palavra-passe.";
+        errorBox.hidden = false;
+        return;
+      }
+      if (button.disabled) return;
+      button.disabled = true;
+      button.lastChild.textContent = "A entrar…";
+      errorBox.hidden = true;
+      try {
+        await Data.signIn(email, password);
+      } catch (error) {
+        button.disabled = false;
+        button.lastChild.textContent = "Entrar →";
+        errorBox.textContent = error.message;
+        errorBox.hidden = false;
+        return;
+      }
+      onDone();
+    };
+    form.elements.email.focus();
+  },
+
   // ---- Início ----
   home(root) {
     const month = App.state.month;
