@@ -1,9 +1,8 @@
 // DATA LAYER — reading and saving.
 // Knows nothing about the screen or about totals.
 
-// The only place that knows where data physically lives. Three possible places:
-// - Published as a Claude artifact → Claude's cloud database (one document per key).
-// - Anywhere else (GitHub Pages, opened from the PC) → Supabase, after logging in.
+// The only place that knows where data physically lives. Two possible places:
+// - Normally (GitHub Pages, opened from the PC) → Supabase, after logging in.
 // - A test server on this computer without the Supabase library → the browser's localStorage.
 // Every place offers the same three operations: load, save, remove a value by its key.
 
@@ -24,22 +23,6 @@ const localBackend = {
     localStorage.removeItem(key);
   },
 };
-
-function cloudBackend(db) {
-  // Documents must be objects, so the value is wrapped as { value }.
-  return {
-    async load(key) {
-      const snap = await db.doc(`store/${key}`).get();
-      return snap.exists ? snap.data().value : null;
-    },
-    async save(key, value) {
-      await db.doc(`store/${key}`).set({ value });
-    },
-    async remove(key) {
-      await db.doc(`store/${key}`).delete();
-    },
-  };
-}
 
 // Supabase: one table "store" with a row per (user, key). The value column holds the same
 // JSON the other backends hold. Supabase returns { data, error } instead of throwing,
@@ -73,10 +56,6 @@ const storage = {
   // Decides once, at startup, which backend to use.
   // Returns false when Supabase is used but nobody is logged in yet (the app shows the login).
   async init() {
-    if (window.claude) {
-      this._backend = cloudBackend(await window.claude.use("db"));
-      return true;
-    }
     if (!window.supabase) {
       // Library didn't load. Only on a test server on this computer is it OK to use the
       // browser's storage; anywhere else that would save to the wrong place, so stop instead.
@@ -124,8 +103,7 @@ const storage = {
 };
 
 // Movements are split into ONE DOCUMENT PER MONTH ("despesas.movements.2026-09"),
-// so no single document ever grows past the database's 256 KB limit,
-// and saving only sends that month's movements, not the whole history.
+// so saving only sends that month's movements, not the whole history.
 // "despesas.months" is the index: the list of months that have a document.
 const KEYS = {
   legacyMovements: "despesas.movements", // old format: everything in one document
@@ -148,11 +126,8 @@ const DEFAULT_CATEGORIES = [
   { id: "c_outros", name: "Outros", parentId: null, type: "income", color: "#4f1623" },
 ];
 
-// Hands a file to the user. Inside Claude: the "downloads" capability (the user confirms).
-// Anywhere else (VS Code, GitHub Pages...): a normal browser download.
+// Hands a file to the user as a normal browser download.
 async function saveFile(filename, text) {
-  const downloads = window.claude ? await window.claude.use("downloads") : null;
-  if (downloads) return downloads.save({ filename, data: text });
   const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
   const link = Object.assign(document.createElement("a"), { href: url, download: filename });
   link.click();

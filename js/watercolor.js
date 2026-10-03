@@ -92,7 +92,7 @@ const Watercolor = (() => {
   // SVG → bitmap. If the browser refuses to turn it into a bitmap, the SVG itself is used
   // (still cached, just a bit less fast).
   // data: URLs (not blob:) because the page already uses them for the linen texture, so every
-  // place the app runs (Claude, GitHub Pages, a file on the PC) is known to allow them.
+  // place the app runs (GitHub Pages, a file on the PC) is known to allow them.
   async function paint(spec) {
     const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(buildSvg(spec))}`;
     try {

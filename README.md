@@ -36,7 +36,7 @@ Five files, loaded in this order. Each one only uses the files loaded before it:
 
 **Money is always stored as whole cents** (`420` = 4,20 €), so there are no floating-point rounding errors.
 
-**Storage:** inside a Claude artifact the app uses Claude's database. Anywhere else (GitHub Pages, `index.html` opened on the PC) it uses **Supabase**: one table `store` with a row per (user, key), protected by Row Level Security so a logged-in user only ever sees their own rows. The first time on a device it asks for email and password; after that it stays logged in. Movements are saved as one row per month, so no single row grows without limit.
+**Storage:** the app uses **Supabase** (on GitHub Pages or with `index.html` opened on the PC): one table `store` with a row per (user, key), protected by Row Level Security so a logged-in user only ever sees their own rows. The first time on a device it asks for email and password; after that it stays logged in. Movements are saved as one row per month, so no single row grows without limit.
 
 ## Run it
 

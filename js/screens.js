@@ -67,7 +67,7 @@ function groupCard(g, categories) {
     </li>`;
 }
 
-// Delete in two taps, without browser pop-ups (confirm() is blocked inside Claude's app).
+// Delete in two taps, without browser pop-ups.
 // 1st tap: × turns into a red "Apagar?". 2nd tap: deletes. No 2nd tap within 3 s: back to ×.
 function wireDeleteButtons(root, screen) {
   root.querySelectorAll("[data-delete]").forEach((btn) => {
